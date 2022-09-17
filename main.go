@@ -1,7 +1,9 @@
 package main
 
 import (
-	"one-million-data/models"
+	"net/http"
+	"one-million-data/controllers"
+	"one-million-data/database"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,30 +13,32 @@ import (
 //	func getAlbums(c *gin.Context) {
 //		c.IndentedJSON(http.StatusOK, albums)
 //	}
-type book struct {
-	ID     string  `json:"id"`
-	Title  string  `json:"title"`
-	Artist string  `json:"artist"`
-	Price  float64 `json:"price"`
-}
-
-var books = []book{
-	{ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
-	{ID: "2", Title: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
-	{ID: "3", Title: "Sarah Vaughan and Clifford Brown", Artist: "Sarah Vaughan", Price: 39.99},
-}
 
 func main() {
+	r := setupRouter()
+
+	database.ConnectDatabase()
+
+	_ = r.Run(":8080")
+
+}
+
+func setupRouter() *gin.Engine {
 	r := gin.Default()
 
-	models.ConnectDatabase()
-	// v1 := r.Group("/v1")
+	r.GET("ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, "pong")
+	})
 
-	r.GET("/", models.GetOrders)
-	r.GET("/order/:id", models.GetOrder)
-	r.GET("/order", models.CreateOrder)
-	r.GET("/order/:id", models.UpdateOrder)
-	r.GET("/order/;id", models.DeleteOrder)
-	r.Run()
+	orderRepo := controllers.NewRepo()
+	itemRepo := controllers.NewRepoItem()
 
+	r.GET("/", orderRepo.GetOrders)
+	r.POST("/order", orderRepo.CreateOrder)
+	r.POST("/item", itemRepo.CreateItem)
+	r.GET("/order/:id", orderRepo.GetOrder)
+	r.PUT("/order/id", orderRepo.UpdateOrder)
+	r.DELETE("/order/id", orderRepo.DeleteOrder)
+
+	return r
 }
